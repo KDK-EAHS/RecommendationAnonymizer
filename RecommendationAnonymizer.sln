@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecommendationAnonymizer", "RecommendationAnonymizer\RecommendationAnonymizer.csproj", "{B26CFAB4-CC92-45A2-9660-A61860EE2F58}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B26CFAB4-CC92-45A2-9660-A61860EE2F58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B26CFAB4-CC92-45A2-9660-A61860EE2F58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B26CFAB4-CC92-45A2-9660-A61860EE2F58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B26CFAB4-CC92-45A2-9660-A61860EE2F58}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C5D0745B-FBF2-40F7-82C5-9F3A8FDF4D4F}
+	EndGlobalSection
+EndGlobal
