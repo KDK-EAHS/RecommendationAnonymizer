@@ -24,9 +24,61 @@ namespace RecommendationAnonymizer
         public string Anonymize(string firstName, string lastName, string letter)
         {
             string anonymizedLetter = "";
-            List<IToken> list = GetTokens(letter);
+
+            /*
+             * NOTES:
+             * - find any full names first
+             * - find first names second
+             * - find variations of first names
+             * - find any lone last names?
+             * - fix: her, hers, herself
+             * - fix capitalization last?
+             */
+
+            string fullName = firstName + " " + lastName;
+
+            anonymizedLetter = letter.Replace(fullName, "the student");
+            anonymizedLetter = anonymizedLetter.Replace(firstName, "the student");
+            // Look for name variations somewhere here
+
+            //string test = "Hello, I am a robot. i am a rabbit. i am. i am n o t.";
+
+            List<IToken> tokens = GetTokens(anonymizedLetter);
+
+            //FixPronouns(tokens);
+            anonymizedLetter = FixCapitalization(tokens, anonymizedLetter);
 
             return anonymizedLetter;
+        }
+
+        private string FixCapitalization(List<IToken> tokens, string text)
+        {
+            string fixedText = text;
+
+            for(int i = 0; i < tokens.Count - 1; i++)
+            {
+                IToken token = tokens[i];
+                IToken nextToken = tokens[i + 1];
+
+                if(token.Value == ".")
+                {
+                    int index = nextToken.Begin;
+                    string start = fixedText.Substring(0, index);
+                    string toFix = fixedText.Substring(index, 1).ToUpper();
+                    string end = fixedText.Substring(index + 1);
+
+                    //Console.WriteLine(token.Begin);
+
+                    fixedText = start + toFix + end;
+                }
+            }
+
+            return fixedText;
+        }
+
+        private void FixPronouns(List<IToken> tokens)
+        {
+            throw new NotImplementedException();
         }
 
         private List<IToken> GetTokens(string letter)
