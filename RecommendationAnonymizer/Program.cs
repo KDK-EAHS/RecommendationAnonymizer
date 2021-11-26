@@ -10,28 +10,32 @@ using P = Catalyst.PatternUnitPrototype;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace Catalyst.Samples.EntityRecognition
+namespace RecommendationAnonymizer
 {
     public static class Program
     {
+        /*
+         * NOTES:
+         * - fix capitalization last?
+         * - find any full names first
+         * - find first names second
+         * - find variations of first names
+         * - find any lone last names?
+         * - fix: her, hers, herself
+         * 
+         * 
+         */
         private static async Task Main()
         {
             //Initialize the English built-in models
             Catalyst.Models.English.Register();
-
-            Storage.Current = new DiskStorage("catalyst-models");
             var nlp = await Pipeline.ForAsync(Language.English);
 
-            string text = File.ReadAllText(@"C:\Users\limon\Documents\GitHub\RecommendationAnonymizer\RecommendationAnonymizer\SampleLetter1.txt");
-            var letter = new Document(text, Language.English);
-            nlp.ProcessSingle(letter);
-            List<IToken> list = new List<IToken>();
-            list = letter.ToTokenList();
-
-            foreach (IToken token in list)
-            {
-
-            }
+            string letterOfRec = File.ReadAllText(@"C:\Users\limon\Documents\GitHub\RecommendationAnonymizer\RecommendationAnonymizer\SampleLetter1.txt");
+            
+            Anonymizer anonymizer = new Anonymizer(nlp);
+            string newLetter = anonymizer.Anonymize("Joe", "Bloom", letterOfRec);
+            Console.WriteLine("DONE");
         }
     }
 }
