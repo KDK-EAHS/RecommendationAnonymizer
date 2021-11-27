@@ -10,33 +10,40 @@ namespace RecommendationAnonymizer
 {
     internal class Anonymizer
     {
-        public Dictionary<string, List<string>> nameVariants;
+        private Dictionary<string, List<string>> nameVariants;
+        private Dictionary<string, string> pronouns;
         private Pipeline nlp;
+        private List<IToken> tokens;
+
+        /*
+             * TODO:
+             * - abstract parts of FixPronouns()                            | STARTED
+             * - fix theirs in FixPronouns()                                |
+             * - check for three-token he himself is/has/was etc.           |
+             * - add dictionary with pronouns & method that loads it        | DONE
+             * - add method to look for name variants                       |
+             * - modify method to load name variants from an outside file?  |
+             * - move tokenizing to inside of methods where applicable      |
+             * 
+             * - check if working on a few more letters                     |
+             * - clean things up & add comments                             |
+             * - enable loading of the pipeline inside of the class?        |
+             */
 
         public Anonymizer(Pipeline nlp)
         {
             nameVariants = new Dictionary<string, List<string>>();
+            pronouns = new Dictionary<string, string>();
             LoadNameVariants();
+            LoadPronouns();
             this.nlp = nlp;
-            //LoadPipeline();
         }
 
         public string Anonymize(string firstName, string lastName, string letter)
         {
             string anonymizedLetter = "";
 
-            /*
-             * TODO:
-             * - abstract parts of FixPronouns()
-             * - fix theirs in FixPronouns()
-             * - check for three-token he himself is/has/was etc.
-             * - add method to look for name variants
-             * - modify method to load name variants from an outside file?
-             * - move tokenizing to inside of methods where applicable
-             * - check if working on a few more letters
-             * - clean things up & add comments
-             * - enable loading of the pipeline inside of the class?
-             */
+            
 
             string fullName = firstName + " " + lastName;
 
@@ -44,9 +51,13 @@ namespace RecommendationAnonymizer
             anonymizedLetter = anonymizedLetter.Replace(firstName, "the student");
             // Look for name variations somewhere here
 
-            string test = "He is blue. You like him. This is his cat. That cat is his. He himself is king. He is there by himself.";
+            tokens = GetTokens(anonymizedLetter);  // move this to inside the methods?
+            
+            foreach(IToken token in tokens)
+            {
+                Console.WriteLine(token.ToString() + " " + token.POS);
+            }
 
-            List<IToken> tokens = GetTokens(anonymizedLetter);  // move this to inside the methods?
             anonymizedLetter = FixPronouns(tokens, anonymizedLetter);
 
             tokens = GetTokens(anonymizedLetter);
@@ -90,80 +101,96 @@ namespace RecommendationAnonymizer
         private string FixPronouns(List<IToken> tokens, string text)
         {
             string fixedText = text;
-            string subjectPronouns = "he,she";
-            string objectPronouns = "him,her"; // this has i and that's why i also gets changed
-            string possessiveAdj = "his,her";
-            string possessivePronouns = "his,hers";
-            string reflexivePronouns = "himself,herself";
+            int index = 0;
+            string start = "";
+            string toFix = "";
+            string end = "";
 
             for (int i = 0; i < tokens.Count - 1; i++)
             {
                 tokens = GetTokens(fixedText);
                 IToken token = tokens[i];
                 IToken nextToken = tokens[i + 1];
+                index = token.Begin;
 
-                if(token.Value == "I") { continue; }
+                string word = $" {token.Value} ";
 
-                if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "is" && subjectPronouns.Contains(token.Value.ToLower()))
+                //fixedText = TwoWordFix(fixedText, subjectPronouns, "is", "they are", token, nextToken);
+
+                //tokens = GetTokens(fixedText);
+
+                
+
+                if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "is" && pronouns["subject"].Contains(word))
                 {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "they are";
-                    string end = fixedText.Substring(nextToken.End + 1);
+                    start = fixedText.Substring(0, index);
+                    toFix = "they are";
+                    end = fixedText.Substring(nextToken.End + 1);
+
+                    fixedText = start + toFix + end;
+
+                }
+
+                else if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "has" && pronouns["subject"].Contains(word))
+                {
+                    
+                    start = fixedText.Substring(0, index);
+                    toFix = "they have";
+                    end = fixedText.Substring(nextToken.End + 1);
 
                     fixedText = start + toFix + end;
                 }
 
-                else if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "has" && subjectPronouns.Contains(token.Value.ToLower()))
+                else if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "was" && pronouns["subject"].Contains(word))
                 {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "they have";
-                    string end = fixedText.Substring(nextToken.End + 1);
+                    
+                    start = fixedText.Substring(0, index);
+                    toFix = "they were";
+                    end = fixedText.Substring(nextToken.End + 1);
 
                     fixedText = start + toFix + end;
                 }
 
-                else if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "was" && subjectPronouns.Contains(token.Value.ToLower()))
+                else if (token.POS == PartOfSpeech.PRON && pronouns["subject"].Contains(word))
                 {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "they were";
-                    string end = fixedText.Substring(nextToken.End + 1);
+                    
+                    start = fixedText.Substring(0, index);
+                    toFix = "they";
+                    end = fixedText.Substring(token.End + 1);
 
                     fixedText = start + toFix + end;
                 }
 
-                else if (token.POS == PartOfSpeech.PRON && subjectPronouns.Contains(token.Value.ToLower()))
+                else if (token.POS == PartOfSpeech.PRON && pronouns["object"].Contains(word))
                 {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "they";
-                    string end = fixedText.Substring(token.End + 1);
+                    
+                    start = fixedText.Substring(0, index);
+                    toFix = "them";
+                    end = fixedText.Substring(token.End + 1);
 
                     fixedText = start + toFix + end;
                 }
 
-                else if (token.POS == PartOfSpeech.PRON && objectPronouns.Contains(token.Value.ToLower()))
+                else if (token.POS == PartOfSpeech.PRON && pronouns["possessiveAdj"].Contains(word))
                 {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "them";
-                    string end = fixedText.Substring(token.End + 1);
+                    
+                    start = fixedText.Substring(0, index);
+                    toFix = "their";
+                    end = fixedText.Substring(token.End + 1);
 
                     fixedText = start + toFix + end;
                 }
-
-                else if (token.POS == PartOfSpeech.DET && possessiveAdj.Contains(token.Value.ToLower()))
+                else if (token.POS == PartOfSpeech.DET && pronouns["possessiveAdj"].Contains(word))
                 {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "their";
-                    string end = fixedText.Substring(token.End + 1);
+
+                    start = fixedText.Substring(0, index);
+                    toFix = "their";
+                    end = fixedText.Substring(token.End + 1);
 
                     fixedText = start + toFix + end;
                 }
                 // THIS ONE IS NOT WORKING
+                /*
                 else if (token.POS == PartOfSpeech.PRON && possessivePronouns.Contains(token.Value.ToLower()))
                 {
                     int index = token.Begin;
@@ -172,21 +199,36 @@ namespace RecommendationAnonymizer
                     string end = fixedText.Substring(token.End + 1);
 
                     fixedText = start + toFix + end;
-                }
-                else if (token.POS == PartOfSpeech.PRON && reflexivePronouns.Contains(token.Value.ToLower()))
+                } */
+                else if (token.POS == PartOfSpeech.PRON && pronouns["reflexive"].Contains(word))
                 {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "themself"; // Add stuff to modify verbs to allow themselves here
-                    string end = fixedText.Substring(token.End + 1);
+                    
+                    start = fixedText.Substring(0, index);
+                    toFix = "themself"; // Add stuff to modify verbs to allow themselves here
+                    end = fixedText.Substring(token.End + 1);
 
                     fixedText = start + toFix + end;
                 }
+                tokens = GetTokens(fixedText);
             }
 
             Console.WriteLine(fixedText);
 
             return fixedText;
+        }
+
+        private string TwoWordFix(string text, string pronouns, string condition, string toFix, IToken token, IToken nextToken)
+        {
+                int index = token.Begin;
+                string start = text.Substring(0, index);
+                string end = text.Substring(nextToken.End + 1);
+
+                text = start + toFix + end;
+            
+
+            tokens = GetTokens(text);
+
+            return text;
         }
 
         private List<IToken> GetTokens(string letter)
@@ -210,11 +252,14 @@ namespace RecommendationAnonymizer
                 nameVariants.Add(key, variants);
             }
         }
-        /*
-        private async Task LoadPipeline()
+
+        private void LoadPronouns()
         {
-            nlp = await Pipeline.ForAsync(Language.English);
+            pronouns.Add("subject", " he she He She ");
+            pronouns.Add("object", " him her Him Her ");
+            pronouns.Add("possessiveAdj", " his her His Her ");
+            pronouns.Add("possessivePron", " his hers His Hers ");
+            pronouns.Add("reflexive", " himself herself Himself Herself ");
         }
-        */
     }
 }
