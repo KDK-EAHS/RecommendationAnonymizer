@@ -36,6 +36,9 @@ namespace RecommendationAnonymizer
             Anonymizer anonymizer = new Anonymizer(nlp);
             string newLetter = anonymizer.Anonymize("Joe", "Bloom", letterOfRec);
             Console.WriteLine(newLetter);
+
+            
+
             Console.WriteLine("DONE");
         }
     }
