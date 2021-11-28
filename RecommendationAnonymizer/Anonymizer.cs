@@ -115,11 +115,55 @@ namespace RecommendationAnonymizer
 
                 string word = $" {token.Value} ";
 
-                //fixedText = TwoWordFix(fixedText, subjectPronouns, "is", "they are", token, nextToken);
+                if(fixedText != TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken))
+                {
+                    fixedText = TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken);
+                }
+                
+                else if (fixedText != TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken))
+                {
+                    fixedText = TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken);
+                }
+
+                else if (fixedText != TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken))
+                {
+                    fixedText = TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken);
+                }
+
+                else if (fixedText != OneWordFix(fixedText, "subject", "they", token))
+                {
+                    fixedText = OneWordFix(fixedText, "subject", "they", token);
+                }
+
+                else if (fixedText != OneWordFix(fixedText, "object", "them", token))
+                {
+                    fixedText = OneWordFix(fixedText, "object", "them", token);
+                }
+
+                else if (fixedText != OneWordFix(fixedText, "possessiveAdj", "their", token))
+                {
+                    fixedText = OneWordFix(fixedText, "possessiveAdj", "their", token);
+                }
+
+                else if (fixedText != OneWordFix(fixedText, "reflexive", "themself", token))
+                {
+                    fixedText = OneWordFix(fixedText, "reflexive", "themself", token);
+                }
+
+                /*
+                fixedText = TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken);
+                fixedText = TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken);
+                fixedText = TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken);
+
+                fixedText = OneWordFix(fixedText, "subject", "they", token);
+                fixedText = OneWordFix(fixedText, "object", "them", token);
+                fixedText = OneWordFix(fixedText, "possessiveAdj", "their", token);
+                fixedText = OneWordFix(fixedText, "reflexive", "themself", token);
+                */
 
                 //tokens = GetTokens(fixedText);
 
-                
+                /*
 
                 if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "is" && pronouns["subject"].Contains(word))
                 {
@@ -151,14 +195,16 @@ namespace RecommendationAnonymizer
                     fixedText = start + toFix + end;
                 }
 
-                else if (token.POS == PartOfSpeech.PRON && pronouns["subject"].Contains(word))
+                
+
+                if (token.POS == PartOfSpeech.PRON && pronouns["subject"].Contains(word))
                 {
                     
                     start = fixedText.Substring(0, index);
                     toFix = "they";
                     end = fixedText.Substring(token.End + 1);
 
-                    fixedText = start + toFix + end;
+                    //fixedText = start + toFix + end;
                 }
 
                 else if (token.POS == PartOfSpeech.PRON && pronouns["object"].Contains(word))
@@ -199,7 +245,7 @@ namespace RecommendationAnonymizer
                     string end = fixedText.Substring(token.End + 1);
 
                     fixedText = start + toFix + end;
-                } */
+                } 
                 else if (token.POS == PartOfSpeech.PRON && pronouns["reflexive"].Contains(word))
                 {
                     
@@ -209,6 +255,7 @@ namespace RecommendationAnonymizer
 
                     fixedText = start + toFix + end;
                 }
+                */
                 tokens = GetTokens(fixedText);
             }
 
@@ -217,8 +264,9 @@ namespace RecommendationAnonymizer
             return fixedText;
         }
 
-        private string TwoWordFix(string text, string pronouns, string condition, string toFix, IToken token, IToken nextToken)
+        private string TwoWordFix(string text, string key, string condition, string insert, IToken token, IToken nextToken)
         {
+            /*
                 int index = token.Begin;
                 string start = text.Substring(0, index);
                 string end = text.Substring(nextToken.End + 1);
@@ -227,6 +275,49 @@ namespace RecommendationAnonymizer
             
 
             tokens = GetTokens(text);
+            */
+
+            if(pronouns[key].Contains($" {token.Value} ") && nextToken.Value == condition)
+            {
+                
+                string start = text.Substring(0, token.Begin);
+                string end = text.Substring(nextToken.End + 1);
+
+                text = start + insert + end;
+            }
+
+            tokens = GetTokens(text);
+
+            // DESIGN IDEAS
+            /* 
+             * he is
+             * he has
+             * he was
+             * 
+             * if token.Value is in dict[key] && if next word is condition, then insert stuff
+             * 
+             */
+
+            return text;
+        }
+
+        private string OneWordFix(string text, string key, string insert, IToken token)
+        {
+            if (pronouns[key].Contains($" {token.Value} "))
+            {
+                string start = text.Substring(0, token.Begin);
+                string end = text.Substring(token.End + 1);
+
+                text = start + insert + end;
+            }
+
+            tokens = GetTokens(text);
+
+            // DESIGN IDEAS
+            /* 
+             * if it's in this set of pronouns, insert this
+             * 
+             */
 
             return text;
         }

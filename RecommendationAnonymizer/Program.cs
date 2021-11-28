@@ -35,7 +35,7 @@ namespace RecommendationAnonymizer
             
             Anonymizer anonymizer = new Anonymizer(nlp);
             string newLetter = anonymizer.Anonymize("Joe", "Bloom", letterOfRec);
-            Console.WriteLine(newLetter);
+            //Console.WriteLine(newLetter);
 
            // string test = "He is blue. I am blue. You like him. This is his cat. That cat is his. You are mine. This was my fault, not hers. He himself is king. He is there by himself.";
             //string newLetter = anonymizer.Anonymize("Joe", "Bloom", test);
