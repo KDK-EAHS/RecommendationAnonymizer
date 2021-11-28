@@ -101,19 +101,12 @@ namespace RecommendationAnonymizer
         private string FixPronouns(List<IToken> tokens, string text)
         {
             string fixedText = text;
-            int index = 0;
-            string start = "";
-            string toFix = "";
-            string end = "";
 
             for (int i = 0; i < tokens.Count - 1; i++)
             {
                 tokens = GetTokens(fixedText);
                 IToken token = tokens[i];
                 IToken nextToken = tokens[i + 1];
-                index = token.Begin;
-
-                string word = $" {token.Value} ";
 
                 if(fixedText != TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken))
                 {
@@ -145,117 +138,20 @@ namespace RecommendationAnonymizer
                     fixedText = OneWordFix(fixedText, "possessiveAdj", "their", token);
                 }
 
-                else if (fixedText != OneWordFix(fixedText, "reflexive", "themself", token))
+                else if (fixedText != OneWordFix(fixedText, "possessivePron", "theirs", token))
                 {
-                    fixedText = OneWordFix(fixedText, "reflexive", "themself", token);
+                    fixedText = OneWordFix(fixedText, "possessivePron", "theirs", token);
                 }
 
-                /*
-                fixedText = TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken);
-                fixedText = TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken);
-                fixedText = TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken);
-
-                fixedText = OneWordFix(fixedText, "subject", "they", token);
-                fixedText = OneWordFix(fixedText, "object", "them", token);
-                fixedText = OneWordFix(fixedText, "possessiveAdj", "their", token);
-                fixedText = OneWordFix(fixedText, "reflexive", "themself", token);
-                */
-
-                //tokens = GetTokens(fixedText);
-
-                /*
-
-                if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "is" && pronouns["subject"].Contains(word))
+                else if (fixedText != OneWordFix(fixedText, "reflexive", "themselves", token))
                 {
-                    start = fixedText.Substring(0, index);
-                    toFix = "they are";
-                    end = fixedText.Substring(nextToken.End + 1);
-
-                    fixedText = start + toFix + end;
-
+                    fixedText = OneWordFix(fixedText, "reflexive", "themselves", token);
                 }
 
-                else if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "has" && pronouns["subject"].Contains(word))
-                {
-                    
-                    start = fixedText.Substring(0, index);
-                    toFix = "they have";
-                    end = fixedText.Substring(nextToken.End + 1);
-
-                    fixedText = start + toFix + end;
-                }
-
-                else if (token.POS == PartOfSpeech.PRON && nextToken.Value.ToLower() == "was" && pronouns["subject"].Contains(word))
-                {
-                    
-                    start = fixedText.Substring(0, index);
-                    toFix = "they were";
-                    end = fixedText.Substring(nextToken.End + 1);
-
-                    fixedText = start + toFix + end;
-                }
-
+                // ISSUE: what if there's something like: he most certainly is...?
+                // ...four word fix?
+                // so then a three word fix for: he himself is/has/was/verb(s)...
                 
-
-                if (token.POS == PartOfSpeech.PRON && pronouns["subject"].Contains(word))
-                {
-                    
-                    start = fixedText.Substring(0, index);
-                    toFix = "they";
-                    end = fixedText.Substring(token.End + 1);
-
-                    //fixedText = start + toFix + end;
-                }
-
-                else if (token.POS == PartOfSpeech.PRON && pronouns["object"].Contains(word))
-                {
-                    
-                    start = fixedText.Substring(0, index);
-                    toFix = "them";
-                    end = fixedText.Substring(token.End + 1);
-
-                    fixedText = start + toFix + end;
-                }
-
-                else if (token.POS == PartOfSpeech.PRON && pronouns["possessiveAdj"].Contains(word))
-                {
-                    
-                    start = fixedText.Substring(0, index);
-                    toFix = "their";
-                    end = fixedText.Substring(token.End + 1);
-
-                    fixedText = start + toFix + end;
-                }
-                else if (token.POS == PartOfSpeech.DET && pronouns["possessiveAdj"].Contains(word))
-                {
-
-                    start = fixedText.Substring(0, index);
-                    toFix = "their";
-                    end = fixedText.Substring(token.End + 1);
-
-                    fixedText = start + toFix + end;
-                }
-                // THIS ONE IS NOT WORKING
-                /*
-                else if (token.POS == PartOfSpeech.PRON && possessivePronouns.Contains(token.Value.ToLower()))
-                {
-                    int index = token.Begin;
-                    string start = fixedText.Substring(0, index);
-                    string toFix = "theirs";
-                    string end = fixedText.Substring(token.End + 1);
-
-                    fixedText = start + toFix + end;
-                } 
-                else if (token.POS == PartOfSpeech.PRON && pronouns["reflexive"].Contains(word))
-                {
-                    
-                    start = fixedText.Substring(0, index);
-                    toFix = "themself"; // Add stuff to modify verbs to allow themselves here
-                    end = fixedText.Substring(token.End + 1);
-
-                    fixedText = start + toFix + end;
-                }
-                */
                 tokens = GetTokens(fixedText);
             }
 
@@ -266,17 +162,6 @@ namespace RecommendationAnonymizer
 
         private string TwoWordFix(string text, string key, string condition, string insert, IToken token, IToken nextToken)
         {
-            /*
-                int index = token.Begin;
-                string start = text.Substring(0, index);
-                string end = text.Substring(nextToken.End + 1);
-
-                text = start + toFix + end;
-            
-
-            tokens = GetTokens(text);
-            */
-
             if(pronouns[key].Contains($" {token.Value} ") && nextToken.Value == condition)
             {
                 
@@ -287,16 +172,6 @@ namespace RecommendationAnonymizer
             }
 
             tokens = GetTokens(text);
-
-            // DESIGN IDEAS
-            /* 
-             * he is
-             * he has
-             * he was
-             * 
-             * if token.Value is in dict[key] && if next word is condition, then insert stuff
-             * 
-             */
 
             return text;
         }
@@ -312,12 +187,6 @@ namespace RecommendationAnonymizer
             }
 
             tokens = GetTokens(text);
-
-            // DESIGN IDEAS
-            /* 
-             * if it's in this set of pronouns, insert this
-             * 
-             */
 
             return text;
         }
