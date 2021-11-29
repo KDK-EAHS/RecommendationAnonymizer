@@ -24,10 +24,19 @@ namespace RecommendationAnonymizer
              * - add method to look for name variants                       |
              * - modify method to load name variants from an outside file?  |
              * - move tokenizing to inside of methods where applicable      |
+             * - make GetTokens() into RefreshTokens() ???                  |
              * 
              * - check if working on a few more letters                     |
              * - clean things up & add comments                             |
              * - enable loading of the pipeline inside of the class?        |
+             * 
+             * (POTENTIAL) ISSUES:
+             * - What if there is a he/she that doesn't refer to the student?
+             * - What if teacher's name is the same as student's?
+             * - What if the student's last name is used alone for some reason?
+             * 
+             * - Present-tense verbs keep their s's at the end when pronouns are changed
+             * - Separated he/she...is/has/was does not get fixed completely
              */
 
         public Anonymizer(Pipeline nlp)
@@ -108,56 +117,44 @@ namespace RecommendationAnonymizer
                 IToken token = tokens[i];
                 IToken nextToken = tokens[i + 1];
 
-                if(fixedText != TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken))
-                {
-                    fixedText = TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken);
-                }
-                
-                else if (fixedText != TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken))
-                {
-                    fixedText = TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken);
-                }
+                List<string> tries = GetTries(fixedText, token, nextToken);
 
-                else if (fixedText != TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken))
+                foreach (string t in tries)
                 {
-                    fixedText = TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken);
-                }
-
-                else if (fixedText != OneWordFix(fixedText, "subject", "they", token))
-                {
-                    fixedText = OneWordFix(fixedText, "subject", "they", token);
-                }
-
-                else if (fixedText != OneWordFix(fixedText, "object", "them", token))
-                {
-                    fixedText = OneWordFix(fixedText, "object", "them", token);
-                }
-
-                else if (fixedText != OneWordFix(fixedText, "possessiveAdj", "their", token))
-                {
-                    fixedText = OneWordFix(fixedText, "possessiveAdj", "their", token);
-                }
-
-                else if (fixedText != OneWordFix(fixedText, "possessivePron", "theirs", token))
-                {
-                    fixedText = OneWordFix(fixedText, "possessivePron", "theirs", token);
-                }
-
-                else if (fixedText != OneWordFix(fixedText, "reflexive", "themselves", token))
-                {
-                    fixedText = OneWordFix(fixedText, "reflexive", "themselves", token);
+                    if (fixedText != t)
+                    {
+                        fixedText = t;
+                        break;
+                    }
                 }
 
                 // ISSUE: what if there's something like: he most certainly is...?
                 // ...four word fix?
                 // so then a three word fix for: he himself is/has/was/verb(s)...
-                
+
                 tokens = GetTokens(fixedText);
             }
 
             Console.WriteLine(fixedText);
 
             return fixedText;
+        }
+
+        private List<string> GetTries(string fixedText, IToken token, IToken nextToken)
+        {
+            List<string> tries = new List<string>();
+
+            tries.Add(TwoWordFix(fixedText, "subject", "is", "they are", token, nextToken));
+            tries.Add(TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken));
+            tries.Add(TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken));
+
+            tries.Add(OneWordFix(fixedText, "subject", "they", token));
+            tries.Add(OneWordFix(fixedText, "object", "them", token));
+            tries.Add(OneWordFix(fixedText, "possessiveAdj", "their", token));
+            tries.Add(OneWordFix(fixedText, "possessivePron", "theirs", token));
+            tries.Add(OneWordFix(fixedText, "reflexive", "themself", token));
+
+            return tries;
         }
 
         private string TwoWordFix(string text, string key, string condition, string insert, IToken token, IToken nextToken)
