@@ -16,34 +16,43 @@ namespace RecommendationAnonymizer
         private List<IToken> tokens;
 
         /*
-             * TODO:
-             * - abstract parts of FixPronouns()                            | STARTED
-             * - fix theirs in FixPronouns()                                |
-             * - check for three-token he himself is/has/was etc.           |
-             * - add dictionary with pronouns & method that loads it        | DONE
-             * - add method to look for name variants                       |
-             * - modify method to load name variants from an outside file?  |
-             * - move tokenizing to inside of methods where applicable      |
-             * - make GetTokens() into RefreshTokens() ???                  |
-             * 
-             * - check if working on a few more letters                     |
-             * - clean things up & add comments                             |
-             * - enable loading of the pipeline inside of the class?        |
-             * 
-             * (POTENTIAL) ISSUES:
-             * - What if there is a he/she that doesn't refer to the student?
-             * - What if teacher's name is the same as student's?
-             * - What if the student's last name is used alone for some reason?
-             * 
-             * - Present-tense verbs keep their s's at the end when pronouns are changed
-             * - Separated he/she...is/has/was does not get fixed completely
-             */
+        * TODO:
+        * - abstract parts of FixPronouns()                            | DONE? mostly --> gave up on theirs & will have to account for s-verbs
+        * - fix theirs in FixPronouns()                                |    probably best I'll be able to do is check for is pron, maybe look for if pron is after noun that lacks pron?
+        * - check for three-token he himself is/has/was etc.           |
+        * - add dictionary with pronouns & method that loads it        | DONE
+        * - add method to look for name variants                       | DONE
+        * - modify method to load name variants from an outside file?  | DONE
+        * - move tokenizing to inside of methods where applicable      |
+        * - make some vars instance vars to avoid passing them in      |
+        * - if making above, add a method to clear those vars at end   |
+        * - make GetTokens() into RefreshTokens() ???                  | broke sth while doing that, so...come back later?
+        * - clean up Anonymize()                                       |
+        * 
+        * - check if working on a few more letters                     |
+        * - clean things up & add comments                             |
+        * - enable loading of the pipeline inside of the class?        |
+        * 
+        * IDEAS:
+        * - maybe go sentence by sentence when analyzing to improve speed?
+        * - look for any verbs ending in s in a sentence and replace pronouns with "the candidate" instead of they/them? 
+        *          (only if there are pronouns in the sentence)
+        * - if doing above, then there would be a special case for they themselves--both would have to go, changing the emphasis slightly
+        * 
+        * (POTENTIAL) ISSUES:
+        * - What if there is a he/she that doesn't refer to the student?
+        * - What if teacher's name is the same as student's?
+        * - What if the student's last name is used alone for some reason?
+        * 
+        * - Present-tense verbs keep their s's at the end when pronouns are changed
+        * - Separated he/she...is/has/was does not get fixed completely
+        */
 
         public Anonymizer(Pipeline nlp)
         {
             nameVariants = new Dictionary<string, List<string>>();
             pronouns = new Dictionary<string, string>();
-            LoadNameVariants();
+            tokens = new List<IToken>();
             LoadPronouns();
             this.nlp = nlp;
         }
@@ -57,8 +66,9 @@ namespace RecommendationAnonymizer
             string fullName = firstName + " " + lastName;
 
             anonymizedLetter = letter.Replace(fullName, "the student");
+            anonymizedLetter = CheckForNameVariants(firstName, anonymizedLetter);
             anonymizedLetter = anonymizedLetter.Replace(firstName, "the student");
-            // Look for name variations somewhere here
+            
 
             tokens = GetTokens(anonymizedLetter);  // move this to inside the methods?
             
@@ -117,14 +127,17 @@ namespace RecommendationAnonymizer
                 IToken token = tokens[i];
                 IToken nextToken = tokens[i + 1];
 
-                List<string> tries = GetTries(fixedText, token, nextToken);
-
-                foreach (string t in tries)
+                if(token.POS == PartOfSpeech.PRON || token.POS == PartOfSpeech.DET)
                 {
-                    if (fixedText != t)
+                    List<string> tries = GetTries(fixedText, token, nextToken);
+
+                    foreach (string t in tries)
                     {
-                        fixedText = t;
-                        break;
+                        if (fixedText != t)
+                        {
+                            fixedText = t;
+                            break;
+                        }
                     }
                 }
 
@@ -148,9 +161,13 @@ namespace RecommendationAnonymizer
             tries.Add(TwoWordFix(fixedText, "subject", "has", "they have", token, nextToken));
             tries.Add(TwoWordFix(fixedText, "subject", "was", "they were", token, nextToken));
 
+            if (token.POS == PartOfSpeech.DET || (token.POS == PartOfSpeech.PRON && nextToken.POS == PartOfSpeech.NOUN || nextToken.POS == PartOfSpeech.ADJ))
+            {
+                tries.Add(OneWordFix(fixedText, "possessiveAdj", "their", token));
+            }
+
             tries.Add(OneWordFix(fixedText, "subject", "they", token));
             tries.Add(OneWordFix(fixedText, "object", "them", token));
-            tries.Add(OneWordFix(fixedText, "possessiveAdj", "their", token));
             tries.Add(OneWordFix(fixedText, "possessivePron", "theirs", token));
             tries.Add(OneWordFix(fixedText, "reflexive", "themself", token));
 
@@ -196,9 +213,9 @@ namespace RecommendationAnonymizer
             return text.ToTokenList();
         }
 
-        private void LoadNameVariants() // FOR LATER: maybe account for if there are no variants to load?
+        public void LoadNameVariants(string pathToFile)
         {
-            string[] lines = File.ReadAllLines(@"C:\Users\limon\Documents\GitHub\RecommendationAnonymizer\RecommendationAnonymizer\variants.csv");
+            string[] lines = File.ReadAllLines(pathToFile);
             foreach(string line in lines)
             {
                 List<string> names = line.Split(new char[] { ',' }).ToList();
@@ -208,6 +225,22 @@ namespace RecommendationAnonymizer
                 
                 nameVariants.Add(key, variants);
             }
+        }
+
+        private string CheckForNameVariants(string firstName, string letter)
+        {
+            if(nameVariants.ContainsKey(firstName.ToLower()))
+            {
+                List<string> variants = nameVariants[firstName.ToLower()];
+
+                foreach (string variant in variants)
+                {
+                    string name = variant.ToTitleCase();
+                    letter = letter.Replace(name, "the student");
+                }
+            }
+
+            return letter;
         }
 
         private void LoadPronouns()

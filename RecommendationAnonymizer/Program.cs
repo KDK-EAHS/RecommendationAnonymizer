@@ -32,16 +32,22 @@ namespace RecommendationAnonymizer
             var nlp = await Pipeline.ForAsync(Language.English);
 
             string letterOfRec = File.ReadAllText(@"C:\Users\limon\Documents\GitHub\RecommendationAnonymizer\RecommendationAnonymizer\SampleLetter1.txt");
-            
+            string nameVariantsFilePath = @"C:\Users\limon\Documents\GitHub\RecommendationAnonymizer\RecommendationAnonymizer\variants.csv";
+
             Anonymizer anonymizer = new Anonymizer(nlp);
+            anonymizer.LoadNameVariants(nameVariantsFilePath);
+
             string newLetter = anonymizer.Anonymize("Joe", "Bloom", letterOfRec);
             //Console.WriteLine(newLetter);
 
-           // string test = "He is blue. I am blue. You like him. This is his cat. That cat is his. You are mine. This was my fault, not hers. He himself is king. He is there by himself.";
+            //string test = "He is blue. I am blue. You like him. This is his cat. That cat is his. You are mine. This was my fault, not hers. He himself is king. He is there by himself.";
             //string newLetter = anonymizer.Anonymize("Joe", "Bloom", test);
             Console.WriteLine(newLetter);
 
-            Console.WriteLine("DONE");
+            string letterOfRec2 = File.ReadAllText(@"C:\Users\limon\Documents\GitHub\RecommendationAnonymizer\RecommendationAnonymizer\SampleLetter2.txt");
+            string newLetter2 = anonymizer.Anonymize("Michelle", "Johnson", letterOfRec2);
+
+            Console.WriteLine(newLetter2);
         }
     }
 }
