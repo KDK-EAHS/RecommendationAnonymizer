@@ -10,7 +10,7 @@ namespace RecommendationAnonymizer
 {
     internal class Anonymizer
     {
-        private Dictionary<string, List<string>> nameVariants;
+        private static Dictionary<string, List<string>> nameVariants;
         private Dictionary<string, string> pronouns;
         private Pipeline nlp;
         private List<IToken> tokens;
@@ -44,7 +44,7 @@ namespace RecommendationAnonymizer
         * - What if teacher's name is the same as student's?
         * - What if the student's last name is used alone for some reason?
         * 
-        * - Present-tense verbs keep their s's at the end when pronouns are changed
+        * - Present-tense verbs keep their s's at the end when pronouns are changed - FIXED :D !!!
         * - Separated he/she...is/has/was does not get fixed completely
         */
 
@@ -65,10 +65,15 @@ namespace RecommendationAnonymizer
 
             string fullName = firstName + " " + lastName;
 
+            //anonymizedLetter = CheckForPresentTense(anonymizedLetter);
+
+
             anonymizedLetter = letter.Replace(fullName, "the student");
             anonymizedLetter = CheckForNameVariants(firstName, anonymizedLetter);
             anonymizedLetter = anonymizedLetter.Replace(firstName, "the student");
-            
+
+            anonymizedLetter = FixPresentTenseSentences(anonymizedLetter);
+
 
             tokens = GetTokens(anonymizedLetter);  // move this to inside the methods?
             
@@ -84,7 +89,138 @@ namespace RecommendationAnonymizer
 
             return anonymizedLetter;
         }
+        private string FixPresentTenseSentences(string anonymizedLetter)
+        {
+            //anonymizedLetter.Split(new char[] { '.', '!', '?' });
 
+            tokens = GetTokens(anonymizedLetter);
+
+            string text = anonymizedLetter;
+
+            bool hasVerb = false;
+            bool hasPron = false;
+            bool fixing = false;
+            int sentenceStart = 0;
+
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                string word = tokens[i].Value;
+                if((tokens[i].POS == PartOfSpeech.VERB || tokens[i].POS == PartOfSpeech.AUX) && word[word.Length - 1] == 's' )
+                {
+                    hasVerb = true;
+                }
+                else if(" He She ".Contains(word.ToTitleCase()))
+                {
+                    hasPron = true;
+                    if(fixing)
+                    {
+                        text = OneWordFix(text, "", "the student", tokens[i]);
+                        tokens = GetTokens(text);
+                    }
+                }
+                else if(".!?".Contains(word))
+                {
+                    if(!fixing && hasPron && hasVerb)
+                    {
+                        i = sentenceStart - 1;
+                        fixing = true;
+                        continue;
+                    }
+                    else if(fixing)
+                    {
+                        hasPron = false;
+                        hasVerb = false;
+                        fixing = false;
+                        sentenceStart = i + 1;
+                        continue;
+                    }
+                    sentenceStart = i + 1;
+                }
+            }
+
+            return text;
+        }
+
+            /*
+             * some pseudocode to think about things
+             * 
+             * loop through tokens
+             *      keep track if pres tense hasVerb
+             *      keep track if he/she hasPron
+             *      keep track of index of sentence-starting token
+             *      
+             *      if reached . or ! or ? AND hasVerb and hasPron are true
+             *          go back to sentence-starting token, do a OneWordFix on prons
+             *          
+             *      else
+             *          reset hasVerb and hasPron, this index becomes index of starting token
+             * 
+             * 
+             * 
+             * 
+            private string CheckForPresentTense(string anonymizedLetter)
+            {
+                string text = anonymizedLetter;
+
+                tokens = GetTokens(text);
+
+                List<string> sentences = GetSentences(anonymizedLetter);
+
+                foreach(string sentence in sentences)
+                {
+                    List<IToken> words = GetTokens(sentence);
+
+                    if(HasPOS(words))
+                    {
+
+                    }
+                }
+
+                return text;
+            }
+
+            private bool HasPOS(List<IToken> words)
+            {
+                bool hasVerb = false;
+                bool hasPron = false;
+
+                foreach(IToken word in words)
+                {
+                    if(word.POS == PartOfSpeech.VERB)
+                    {
+                        hasVerb = true;
+                    }
+                    else if (" He She Him Her His Hers Himself Herself".Contains(word.Value.ToTitleCase()))
+                    {
+                        hasPron = true;
+                    }
+                }
+
+                return hasPron && hasVerb;
+            }
+
+            private List<string> GetSentences(string anonymizedLetter)
+            {
+                List<string> sentences = new List<string>();
+                string sentence = "";
+
+                foreach(char c in anonymizedLetter)
+                {
+                    if(!".?!".Contains(c)) // if not sentence end
+                    {
+                        sentence += c;
+                    }
+                    else
+                    {
+                        sentence += c;
+                        sentences.Add(sentence);
+                        sentence = "";
+                    }
+                }
+
+                return sentences;
+            }
+            */
         private string FixCapitalization(List<IToken> tokens, string text)
         {
             string fixedText = text;
@@ -169,7 +305,7 @@ namespace RecommendationAnonymizer
             tries.Add(OneWordFix(fixedText, "subject", "they", token));
             tries.Add(OneWordFix(fixedText, "object", "them", token));
             tries.Add(OneWordFix(fixedText, "possessivePron", "theirs", token));
-            tries.Add(OneWordFix(fixedText, "reflexive", "themself", token));
+            tries.Add(OneWordFix(fixedText, "reflexive", "themselves", token));
 
             return tries;
         }
@@ -192,7 +328,14 @@ namespace RecommendationAnonymizer
 
         private string OneWordFix(string text, string key, string insert, IToken token)
         {
-            if (pronouns[key].Contains($" {token.Value} "))
+            if(key == "")
+            {
+                string start = text.Substring(0, token.Begin);
+                string end = text.Substring(token.End + 1);
+
+                text = start + insert + end;
+            }
+            else if (pronouns[key].Contains($" {token.Value} "))
             {
                 string start = text.Substring(0, token.Begin);
                 string end = text.Substring(token.End + 1);
@@ -211,9 +354,9 @@ namespace RecommendationAnonymizer
             nlp.ProcessSingle(text);
             
             return text.ToTokenList();
-        }
+        } // maybe use Tokenizer.Process() here?
 
-        public void LoadNameVariants(string pathToFile)
+        public static void LoadNameVariants(string pathToFile)
         {
             string[] lines = File.ReadAllLines(pathToFile);
             foreach(string line in lines)
