@@ -114,11 +114,11 @@ namespace RecommendationAnonymizer
                     hasPron = true;
                     if(fixing)
                     {
-                        text = OneWordFix(text, "", "the student", tokens[i]);
+                        text = OneWordFix(text, "", "the candidate", tokens[i]);
                         tokens = GetTokens(text);
                     }
                 }
-                else if(".!?".Contains(word))
+                else if(".!?,".Contains(word))
                 {
                     if(!fixing && hasPron && hasVerb)
                     {

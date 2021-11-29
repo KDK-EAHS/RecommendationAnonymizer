@@ -45,9 +45,9 @@ namespace RecommendationAnonymizer
             Console.WriteLine(newLetter);
 
             string letterOfRec2 = File.ReadAllText(@"C:\Users\limon\Documents\GitHub\RecommendationAnonymizer\RecommendationAnonymizer\SampleLetter2.txt");
-            //string newLetter2 = anonymizer.Anonymize("Michelle", "Johnson", letterOfRec2);
+            string newLetter2 = anonymizer.Anonymize("Michelle", "Johnson", letterOfRec2);
 
-            //Console.WriteLine(newLetter2);
+            Console.WriteLine(newLetter2);
 
             // TEST - didn't really get anywhere
             /*
